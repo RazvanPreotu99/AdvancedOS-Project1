@@ -1,16 +1,18 @@
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.Arrays;
+import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 //Object to reprsents a node in the distributed system
-class Node {
+class Node implements Runnable {
 
     // node identifier
     private NodeID identifier;
@@ -18,8 +20,13 @@ class Node {
 
     private NodeStruct myInfo;
     private NodeStruct allNodes[];
-    // constructor
 
+    private ServerSocket ss;
+
+    private Pair conns[];
+    private int NconnsLeft = -1;
+
+    // constructor
     public Node(NodeID identifier, String configFile, Listener listener) {
         this.identifier = identifier;
         this.listener = listener;
@@ -27,25 +34,45 @@ class Node {
         myInfo = new NodeStruct(identifier, "", -1);
         createFromFile(configFile);
 
-        //System.out.println("Finished parsing info");
-        
         try {
-            ServerSocket ss = new ServerSocket(myInfo.port);
+            ss = new ServerSocket(myInfo.port);
         } catch (IOException ex) {
             Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Cannot establish server socket for node: " + myInfo.id.getID());
+            System.exit(3);
         }
 
-        
-        // TO DO
-        // start listening 
-        
-        
-        // TO DO
-        // how to establish connection to neighbor?
-        // neighbor might not be up, so either
-        // 1) keep trying until it finds it is up
-        // 2) only try when there is a message for that neighbor, give error if neighbor is down
-        // 3) ???
+        NconnsLeft = myInfo.neighbors.length;
+        conns = new Pair[NconnsLeft];
+        for (int i = 0; i < NconnsLeft; ++i) {
+            conns[i] = new Pair(myInfo.neighbors[i]);
+        }
+        connectToNeighbors();
+        System.out.println("Node " + myInfo.id.getID() + " has been set up");
+    }
+
+    @Override
+    public void run() {
+        while (NconnsLeft>0) {
+            Socket s = null;
+            try {
+                s = ss.accept();
+                DataInputStream dis = new DataInputStream(s.getInputStream());
+                System.out.println("New connection comes");
+                int clientid = Integer.parseInt(dis.readUTF());
+                System.out.println("Node " + myInfo.id.getID() + "receives connection from node" + clientid);
+                for( Pair p: conns){
+                    if(p.id.getID() == clientid){
+                        p.socket = s;
+                        NconnsLeft--;
+                    }
+                }
+                //  Thread t = new ClientHandler(s, dis, dos);
+                // t.start();
+            } catch (IOException e) {
+            }
+        }
+        System.out.println("Node " + myInfo.id.getID() + " has connected to all neighbors. Stop listening for new conns");
     }
 
     @Override
@@ -68,6 +95,33 @@ class Node {
 
     public void tearDown() {
         //Your code goes here
+    }
+
+    private void connectToNeighbors() {
+        for (int i = 0; i < myInfo.neighbors.length; ++i) {
+            if(conns[i].socket == null){
+                Socket s = connectTo(myInfo.neighbors[i]);
+                if (s != null){
+                    conns[i].socket = s;
+                    NconnsLeft--;
+                }
+            }
+        }
+    }
+
+    private Socket connectTo(NodeID nid) {
+        NodeStruct ns = findNodeStruct(nid);
+
+        try {
+            Socket socket = new Socket(ns.machine, ns.port);
+            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+            dos.writeUTF(myInfo.id.getID()+"");
+            System.out.println("Node " + myInfo.id.getID() + " connected to " + ns);
+            return socket;
+        } catch (Exception ex) {
+            System.out.println("Host not found " + ns);
+        }
+        return null;
     }
 
     /*
@@ -147,18 +201,19 @@ class Node {
 
     // TO DO change to private
     // TO DO binary search or sth  faster
-    public NodeStruct findNodeStruct(NodeID id){
-        for( NodeStruct ns: allNodes){
-            if ( ns.id.getID() == id.getID())
+    public NodeStruct findNodeStruct(NodeID id) {
+        for (NodeStruct ns : allNodes) {
+            if (ns.id.getID() == id.getID()) {
                 return ns;
+            }
         }
         return null; // we should not be here
     }
-    
+
     // TO DO delete this or make private, only public
-    public void printNeighborInfo(){
+    public void printNeighborInfo() {
         System.out.println("Neighbors are: ");
-        for(NodeID nid: myInfo.neighbors){
+        for (NodeID nid : myInfo.neighbors) {
             System.out.println(findNodeStruct(nid));
         }
     }

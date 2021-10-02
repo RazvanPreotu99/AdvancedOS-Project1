@@ -1,18 +1,22 @@
-package cs6378Project1;
-
-import java.io.Serializable;
-
-public class NodeID implements Serializable {
-	
-	private static final long serialVersionUID = 1L;
+//Class needs to be serializable since its a part of Message
+public class NodeID implements java.io.Serializable
+{
+	//ID of the node
 	private int identifier;
 	
-	//constructor
-	public NodeID(int identifier) {
-		this.identifier = identifier;
+	//Constructor
+	public NodeID(int id)
+	{
+		identifier = id;
 	}
 	
-	public int getID() {
+	//Getter function for ID
+	public int getID()
+	{
 		return identifier;
 	}
+        
+        public String toString(){
+            return ""+identifier;
+        }
 }
