@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.logging.Level;
@@ -53,19 +54,18 @@ class Node implements Runnable {
 
     @Override
     public void run() {
-        while (NconnsLeft>0) {
+        while (NconnsLeft > 0) {
             Socket s = null;
             try {
                 s = ss.accept();
                 DataInputStream dis = new DataInputStream(s.getInputStream());
                 System.out.println("New connection comes");
-                int clientid = Integer.parseInt(dis.readUTF());
+                NodeID clientid = new NodeID(Integer.parseInt(dis.readUTF()));
                 System.out.println("Node " + myInfo.id.getID() + "receives connection from node" + clientid);
-                for( Pair p: conns){
-                    if(p.id.getID() == clientid){
-                        p.socket = s;
-                        NconnsLeft--;
-                    }
+                int i = findSocketIndex(clientid);
+                if (i != -1) {
+                    conns[i].socket = s;
+                    NconnsLeft--;
                 }
                 //  Thread t = new ClientHandler(s, dis, dos);
                 // t.start();
@@ -86,11 +86,28 @@ class Node implements Runnable {
     }
 
     public void send(Message message, NodeID destination) {
-        //Your code goes here
+        message.source = myInfo.id;
+        int i = findSocketIndex(destination);
+        if (i != -1) {
+            try {
+                new ObjectOutputStream(conns[i].socket.getOutputStream()).writeObject(message);
+            } catch (IOException ex) {
+                Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     }
 
     public void sendToAll(Message message) {
-        //Your code goes here
+        message.source = myInfo.id;
+        for (Pair p : conns) {
+            if (p.socket != null) {
+                try {
+                    new ObjectOutputStream(p.socket.getOutputStream()).writeObject(message);
+                } catch (IOException ex) {
+                    Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
     }
 
     public void tearDown() {
@@ -99,9 +116,9 @@ class Node implements Runnable {
 
     private void connectToNeighbors() {
         for (int i = 0; i < myInfo.neighbors.length; ++i) {
-            if(conns[i].socket == null){
+            if (conns[i].socket == null) {
                 Socket s = connectTo(myInfo.neighbors[i]);
-                if (s != null){
+                if (s != null) {
                     conns[i].socket = s;
                     NconnsLeft--;
                 }
@@ -115,7 +132,7 @@ class Node implements Runnable {
         try {
             Socket socket = new Socket(ns.machine, ns.port);
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-            dos.writeUTF(myInfo.id.getID()+"");
+            dos.writeUTF(myInfo.id.getID() + "");
             System.out.println("Node " + myInfo.id.getID() + " connected to " + ns);
             return socket;
         } catch (Exception ex) {
@@ -201,7 +218,7 @@ class Node implements Runnable {
 
     // TO DO change to private
     // TO DO binary search or sth  faster
-    public NodeStruct findNodeStruct(NodeID id) {
+    private NodeStruct findNodeStruct(NodeID id) {
         for (NodeStruct ns : allNodes) {
             if (ns.id.getID() == id.getID()) {
                 return ns;
@@ -210,8 +227,16 @@ class Node implements Runnable {
         return null; // we should not be here
     }
 
-    // TO DO delete this or make private, only public
-    public void printNeighborInfo() {
+    private int findSocketIndex(NodeID id) {
+        for (int i = 0; i < conns.length; ++i) {
+            if (conns[i].id.getID() == id.getID()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void printNeighborInfo() {
         System.out.println("Neighbors are: ");
         for (NodeID nid : myInfo.neighbors) {
             System.out.println(findNodeStruct(nid));

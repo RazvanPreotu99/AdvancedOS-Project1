@@ -7,6 +7,5 @@ public class Main {
             Node myNode = new Node(new NodeID(i), "config.txt", null);
             new Thread(myNode).start();
         }
-
     }
 }
