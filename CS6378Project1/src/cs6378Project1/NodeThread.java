@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 public class NodeThread implements Runnable{
 	
 	private Node node;
-	private Socket socket;
+	//private Socket socket;
 	private ObjectInputStream inputStream;
 	
 	boolean stopThread = false;
@@ -18,7 +18,7 @@ public class NodeThread implements Runnable{
 	// constructor
 	public NodeThread(Node node, Socket socket) {
 		this.node = node;
-		this.socket = socket;
+		//this.socket = socket;
 		
 		// create inputStream to read Message objects
 		try {
@@ -36,17 +36,38 @@ public class NodeThread implements Runnable{
 				// read message, will be blocked if there is no message to read
                 Message message = (Message) inputStream.readObject();
                 
-                //check if it is a tearDown message
                 String s = new String(message.data, StandardCharsets.UTF_8);
                 
+                //check if it is a terminate message
                 if(s.equals("TERMINATE")) {
-                	// create tearDown message and send it back as a response
-                	Message newMessage = new Message(node.getNodeStruct().id, "TERMINATE".getBytes());
+                	
+                	System.out.println("Thread for Node " + Integer.toString(node.getNodeStruct().id.getID()) + " received terminate message from Node " + 
+                	message.source.getID());
+                	
+                	// create terminate done message and send it back as a response
+                	Message newMessage = new Message(node.getNodeStruct().id, "TERMINATEDONE".getBytes());
                 	node.send(newMessage, message.source);
                 	
-                	// close stream and socket
+                	// close input stream
                 	inputStream.close();
-                	socket.close();
+                	
+                	// tell Node to close socket
+                	node.closeConnection(message.source);
+                	              	
+                	// end thread
+                	stopThread = true;
+                }
+                // check if it is a terminate done message
+                else if(s.equals("TERMINATEDONE")) {
+                	
+                	System.out.println("Thread for Node " + Integer.toString(node.getNodeStruct().id.getID()) + " received terminate done message from Node " + 
+                        	message.source.getID());
+                	
+                	// close input stream
+                	inputStream.close();
+                	
+                	// tell Node to close socket
+                	node.closeConnection(message.source);
                 	
                 	// end thread
                 	stopThread = true;

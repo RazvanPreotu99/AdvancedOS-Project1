@@ -13,7 +13,7 @@ import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-//Object to reprsents a node in the distributed system
+//Object to represent a node in the distributed system
 class Node implements Runnable {
 
     // node identifier
@@ -64,7 +64,7 @@ class Node implements Runnable {
                 DataInputStream dis = new DataInputStream(s.getInputStream());
                 System.out.println("New connection comes");
                 NodeID clientid = new NodeID(Integer.parseInt(dis.readUTF()));
-                System.out.println("Node " + myInfo.id.getID() + "receives connection from node" + clientid);
+                System.out.println("Node " + myInfo.id.getID() + " receives connection from node" + clientid);
                 int i = findSocketIndex(clientid);
                 if (i != -1) {
                     conns[i].socket = s;
@@ -108,12 +108,41 @@ class Node implements Runnable {
         message.source = myInfo.id;
         int i = findSocketIndex(destination);
         if (i != -1) {
-            try {
-                new ObjectOutputStream(conns[i].socket.getOutputStream()).writeObject(message);
-            } catch (IOException ex) {
-                Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
-            }
+        	if(conns[i].socket != null && !(conns[i].socket.isClosed())) {
+        		try {
+                    new ObjectOutputStream(conns[i].socket.getOutputStream()).writeObject(message);
+                } catch (IOException ex) {
+                    Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
+                }
+        	}
+        	else {
+        		System.out.println("Node " + Integer.toString(identifier.getID()) + ": connection to Node " + Integer.toString(destination.getID()) + "is already closed");
+        		System.out.println("Node " + Integer.toString(identifier.getID()) + ": not sending message");
+              }
+        	}
+        else {
+    		System.out.println("Node " + Integer.toString(identifier.getID()) + ": connection to Node " + Integer.toString(destination.getID()) + " doesn't exist");
+    		System.out.println("Node " + Integer.toString(identifier.getID()) + ": unable to send message");
         }
+    }
+    
+    public void sendMessage(String string_message, int id) {
+    	
+    	NodeID destID = null;
+    	
+    	for(int i=0; i < myInfo.neighbors.length; ++i) {
+    		if(myInfo.neighbors[i].getID() == id) {
+    			destID = myInfo.neighbors[i];
+    		}
+    	}
+    	
+    	if(destID == null) {
+    		System.out.println("Node " + Integer.toString(identifier.getID()) + ":Node with identifier " + Integer.toString(id) + "is not a neighbor");
+    	}
+    	else {
+    		Message message = new Message(this.identifier, string_message.getBytes());
+        	send(message, destID);
+    	}
     }
 
     public void sendToAll(Message message) {
@@ -134,18 +163,51 @@ class Node implements Runnable {
     	Message message = new Message(identifier, "TERMINATE".getBytes());
     	sendToAll(message);
     	
-    	// join all NodeThreads
-    	for(Thread t: threads) {
-    		try {
-    			t.join();
-    		}
-    		catch(InterruptedException ex) {
-    			
-    		}
-    	}
+//    	// join all NodeThreads
+//    	for(Thread t: threads) {
+//    		try {
+//    			t.join();
+//    		}
+//    		catch(InterruptedException ex) {
+//    			
+//    		}
+//    	}
     	
     	// notify listener about tearDown
-    	listener.broken(identifier);
+    	if(listener != null)
+    	{
+        	listener.broken(identifier);
+    	}
+    	
+    	System.out.println("Node " + Integer.toString(identifier.getID()) + ": finished tearDown");
+    }
+    
+    public void closeConnection(NodeID source) {
+    	
+    	System.out.println("Node " + Integer.toString(identifier.getID()) + " attempting to close socket with Node " + Integer.toString(source.getID()));
+    	int i = 0;
+    	boolean isClosed = false;
+    	
+    	while(i < conns.length && isClosed == false) {
+    		if(source.getID() == conns[i].id.getID()) {
+    			try{
+    				conns[i].socket.close();
+    				conns[i].socket = null;
+    		    	System.out.println("Node " + Integer.toString(identifier.getID()) + " succesfully closed socket with Node " + Integer.toString(source.getID()));
+    		    	isClosed = true;
+    			}
+    			catch(IOException ex) {
+    				Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
+    			}
+    		}
+    		
+    		i++;
+    	}
+    	
+    	// check if socket was closed. shouldn't be here as source should be in conns array
+    	if(isClosed == false) {
+    		System.out.println("Error: Node " + Integer.toString(source.getID()) + "is not a neighbor so there is no connection to close");
+    	}
     }
 
     private void connectToNeighbors() {
@@ -262,7 +324,7 @@ class Node implements Runnable {
     }
 
     private int findSocketIndex(NodeID id) {
-        for (int i = 0; i < conns.length; ++i) {
+        for (int i = 0; i < conns.length; ++i) {        	
             if (conns[i].id.getID() == id.getID()) {
                 return i;
             }
