@@ -1,3 +1,4 @@
+package cs6378Project1;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -26,7 +27,9 @@ class Node implements Runnable {
 
     private Pair conns[];
     private int NconnsLeft = -1;
-
+    
+    private Thread threads[];
+    
     // constructor
     public Node(NodeID identifier, String configFile, Listener listener) {
         this.identifier = identifier;
@@ -73,6 +76,14 @@ class Node implements Runnable {
             }
         }
         System.out.println("Node " + myInfo.id.getID() + " has connected to all neighbors. Stop listening for new conns");
+        
+        //create NodeThreads to check for messages incoming on channels
+        threads = new Thread[myInfo.neighbors.length];
+        
+        for(int i = 0; i < threads.length; ++i) {
+        	threads[i] = new Thread(new NodeThread(this, conns[i].socket));
+        	threads[i].start();
+        }
     }
 
     @Override
@@ -83,6 +94,14 @@ class Node implements Runnable {
     // methods
     public NodeID[] getNeighbors() {
         return myInfo.neighbors;
+    }
+    
+    public Listener getListener() {
+    	return listener;
+    }
+    
+    public NodeStruct getNodeStruct() {
+    	return myInfo;
     }
 
     public void send(Message message, NodeID destination) {
@@ -109,9 +128,24 @@ class Node implements Runnable {
             }
         }
     }
-
+    
     public void tearDown() {
-        //Your code goes here
+        // send tearDown message to all neighbors
+    	Message message = new Message(identifier, "TERMINATE".getBytes());
+    	sendToAll(message);
+    	
+    	// join all NodeThreads
+    	for(Thread t: threads) {
+    		try {
+    			t.join();
+    		}
+    		catch(InterruptedException ex) {
+    			
+    		}
+    	}
+    	
+    	// notify listener about tearDown
+    	listener.broken(identifier);
     }
 
     private void connectToNeighbors() {
