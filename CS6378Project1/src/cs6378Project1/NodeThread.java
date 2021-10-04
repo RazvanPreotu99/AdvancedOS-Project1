@@ -7,7 +7,8 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 public class NodeThread implements Runnable {
-
+    public static final boolean DEBUG = Node.DEBUG;
+    
     private Node node;
     //private Socket socket;
     private ObjectInputStream inputStream;
@@ -24,6 +25,7 @@ public class NodeThread implements Runnable {
 
     }
 
+    @Override
     public void run() {
         // loop until tearDown is called
         while (stopThread == false) {
@@ -36,9 +38,10 @@ public class NodeThread implements Runnable {
                 //check if it is a terminate message
                 if (s.equals("TERMINATE")) {
 
-                    System.out.println("Thread for Node " + Integer.toString(node.getNodeStruct().id.getID()) + " received terminate message from Node "
+                    if (DEBUG) {
+                        System.out.println("Thread for Node " + Integer.toString(node.getNodeStruct().id.getID()) + " received terminate message from Node "
                             + message.source.getID());
-
+                    }
                     // create terminate done message and send it back as a response
                     Message newMessage = new Message(node.getNodeStruct().id, "TERMINATEDONE".getBytes());
                     node.send(newMessage, message.source);
@@ -54,9 +57,10 @@ public class NodeThread implements Runnable {
                 } // check if it is a terminate done message
                 else if (s.equals("TERMINATEDONE")) {
 
-                    System.out.println("Thread for Node " + Integer.toString(node.getNodeStruct().id.getID()) + " received terminate done message from Node "
+                    if (DEBUG) {
+                        System.out.println("Thread for Node " + Integer.toString(node.getNodeStruct().id.getID()) + " received terminate done message from Node "
                             + message.source.getID());
-
+                    }
                     // close input stream
                     inputStream.close();
 

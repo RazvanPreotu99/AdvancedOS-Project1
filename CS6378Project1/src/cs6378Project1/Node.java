@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
@@ -15,6 +14,8 @@ import java.util.logging.Logger;
 
 //Object to represent a node in the distributed system
 final class Node {
+
+    public static final boolean DEBUG = true;
 
     // node identifier
     private NodeID identifier;
@@ -42,7 +43,9 @@ final class Node {
             ss = new ServerSocket(myInfo.port);
         } catch (IOException ex) {
             Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
-            System.out.println("Cannot establish server socket for node: " + myInfo.id.getID());
+            if (DEBUG) {
+                System.out.println("Cannot establish server socket for node: " + myInfo.id.getID());
+            }
             System.exit(3);
         }
 
@@ -52,7 +55,9 @@ final class Node {
             conns[i] = new IDSocket(myInfo.neighbors[i]);
         }
         connectToNeighbors();
-        System.out.println("Node " + myInfo.id.getID() + " has been set up");
+        if (DEBUG) {
+            System.out.println("Node " + myInfo.id.getID() + " is listening for incoming clients.");
+        }
         listen();
     }
 
@@ -62,9 +67,14 @@ final class Node {
             try {
                 s = ss.accept();
                 DataInputStream dis = new DataInputStream(s.getInputStream());
-                System.out.println("New connection comes");
+                if (DEBUG) {
+                    System.out.println("New connection comes");
+                }
                 NodeID clientid = new NodeID(Integer.parseInt(dis.readUTF()));
-                System.out.println("Node " + myInfo.id.getID() + " receives connection from node" + clientid);
+
+                if (DEBUG) {
+                    System.out.println("Node " + myInfo.id.getID() + " receives connection from node" + clientid);
+                }
                 int i = findSocketIndex(clientid);
                 if (i != -1) {
                     conns[i].setSocket(s);
@@ -73,15 +83,14 @@ final class Node {
             } catch (IOException e) {
             }
         }
-        System.out.println("Node " + myInfo.id.getID() + " has connected to all neighbors. Stop listening for new conns");
-
+        if (DEBUG) {
+            System.out.println("Node " + myInfo.id.getID() + " has connected to all neighbors. Stop listening for new conns");
+        }
         //create NodeThreads to check for messages incoming on channels
         threads = new Thread[myInfo.neighbors.length];
         try {
-            for (int i = 0; i < threads.length; ++i) {
-                System.out.println("Creating listener threads");
+            for (int i = 0; i < threads.length; ++i) {   
                 threads[i] = new Thread(new NodeThread(this, conns[i].socket));
-                System.out.println("Starting");
                 threads[i].start();
             }
         } catch (Exception e) {
@@ -132,12 +141,16 @@ final class Node {
                     Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
                 }
             } else {
-                System.out.println("Node " + Integer.toString(identifier.getID()) + ": connection to Node " + Integer.toString(destination.getID()) + "is already closed");
-                System.out.println("Node " + Integer.toString(identifier.getID()) + ": not sending message");
+                if (DEBUG) {
+                    System.out.println("Node " + Integer.toString(identifier.getID()) + ": connection to Node " + Integer.toString(destination.getID()) + "is already closed");
+                    System.out.println("Node " + Integer.toString(identifier.getID()) + ": not sending message");
+                }
             }
         } else {
-            System.out.println("Node " + Integer.toString(identifier.getID()) + ": connection to Node " + Integer.toString(destination.getID()) + " doesn't exist");
-            System.out.println("Node " + Integer.toString(identifier.getID()) + ": unable to send message");
+            if (DEBUG) {
+                System.out.println("Node " + Integer.toString(identifier.getID()) + ": connection to Node " + Integer.toString(destination.getID()) + " doesn't exist");
+                System.out.println("Node " + Integer.toString(identifier.getID()) + ": unable to send message");
+            }
         }
     }
 
@@ -173,12 +186,16 @@ final class Node {
             listener.broken(identifier);
         }
 
-        System.out.println("Node " + Integer.toString(identifier.getID()) + ": finished tearDown");
+        if (DEBUG) {
+            System.out.println("Node " + Integer.toString(identifier.getID()) + ": finished tearDown");
+        }
     }
 
     public void closeConnection(NodeID source) {
 
-        System.out.println("Node " + Integer.toString(identifier.getID()) + " attempting to close socket with Node " + Integer.toString(source.getID()));
+        if (DEBUG) {
+            System.out.println("Node " + Integer.toString(identifier.getID()) + " attempting to close socket with Node " + Integer.toString(source.getID()));
+        }
         int i = 0;
         boolean isClosed = false;
 
@@ -187,7 +204,9 @@ final class Node {
                 try {
                     conns[i].socket.close();
                     conns[i].socket = null;
-                    System.out.println("Node " + Integer.toString(identifier.getID()) + " succesfully closed socket with Node " + Integer.toString(source.getID()));
+                    if (DEBUG) {
+                        System.out.println("Node " + Integer.toString(identifier.getID()) + " succesfully closed socket with Node " + Integer.toString(source.getID()));
+                    }
                     isClosed = true;
                 } catch (IOException ex) {
                     Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
@@ -202,7 +221,9 @@ final class Node {
             System.out.println("Error: Node " + Integer.toString(source.getID()) + "is not a neighbor so there is no connection to close");
         }
 
-        System.out.println("Node " + identifier + "has neighbors: " + Arrays.toString(getNeighbors()));
+        if (DEBUG) {
+            System.out.println("Node " + identifier + "has neighbors: " + Arrays.toString(getNeighbors()));
+        }
 
     }
 
@@ -225,10 +246,14 @@ final class Node {
             Socket socket = new Socket(ns.machine, ns.port);
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
             dos.writeUTF(myInfo.id.getID() + "");
-            System.out.println("Node " + myInfo.id.getID() + " connected to " + ns);
+            if (DEBUG) {
+                System.out.println("Node " + myInfo.id.getID() + " connected to " + ns);
+            }
             return socket;
         } catch (Exception ex) {
-            System.out.println("Host not found " + ns);
+            if (DEBUG) {
+                System.out.println("Host not found " + ns);
+            }
         }
         return null;
     }
