@@ -14,7 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 //Object to represent a node in the distributed system
-class Node implements Runnable {
+final class Node {
 
     // node identifier
     private NodeID identifier;
@@ -25,7 +25,7 @@ class Node implements Runnable {
 
     private ServerSocket ss;
 
-    private final Pair conns[];
+    private final IDSocket conns[];
     private int NconnsLeft = -1;
 
     private Thread threads[];
@@ -47,16 +47,16 @@ class Node implements Runnable {
         }
 
         NconnsLeft = myInfo.neighbors.length;
-        conns = new Pair[NconnsLeft];
+        conns = new IDSocket[NconnsLeft];
         for (int i = 0; i < NconnsLeft; ++i) {
-            conns[i] = new Pair(myInfo.neighbors[i]);
+            conns[i] = new IDSocket(myInfo.neighbors[i]);
         }
         connectToNeighbors();
         System.out.println("Node " + myInfo.id.getID() + " has been set up");
+        listen();
     }
 
-    @Override
-    public void run() {
+    public void listen() {
         while (NconnsLeft > 0) {
             Socket s = null;
             try {
@@ -67,11 +67,9 @@ class Node implements Runnable {
                 System.out.println("Node " + myInfo.id.getID() + " receives connection from node" + clientid);
                 int i = findSocketIndex(clientid);
                 if (i != -1) {
-                    conns[i].socket = s;
+                    conns[i].setSocket(s);
                     NconnsLeft--;
                 }
-                //  Thread t = new ClientHandler(s, dis, dos);
-                // t.start();
             } catch (IOException e) {
             }
         }
@@ -79,10 +77,15 @@ class Node implements Runnable {
 
         //create NodeThreads to check for messages incoming on channels
         threads = new Thread[myInfo.neighbors.length];
-
-        for (int i = 0; i < threads.length; ++i) {
-            threads[i] = new Thread(new NodeThread(this, conns[i].socket));
-            threads[i].start();
+        try {
+            for (int i = 0; i < threads.length; ++i) {
+                System.out.println("Creating listener threads");
+                threads[i] = new Thread(new NodeThread(this, conns[i].socket));
+                System.out.println("Starting");
+                threads[i].start();
+            }
+        } catch (Exception e) {
+            System.out.println("Something went wrong");
         }
     }
 
@@ -124,7 +127,7 @@ class Node implements Runnable {
         if (i != -1) {
             if (conns[i].socket != null && !(conns[i].socket.isClosed())) {
                 try {
-                    new ObjectOutputStream(conns[i].socket.getOutputStream()).writeObject(message);
+                    conns[i].oos.writeObject(message);
                 } catch (IOException ex) {
                     Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -150,10 +153,10 @@ class Node implements Runnable {
 
     public void sendToAll(Message message) {
         message.source = myInfo.id;
-        for (Pair p : conns) {
+        for (IDSocket p : conns) {
             if (p.socket != null && !p.socket.isClosed()) {
                 try {
-                    new ObjectOutputStream(p.socket.getOutputStream()).writeObject(message);
+                    p.oos.writeObject(message);
                 } catch (IOException ex) {
                     Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -165,16 +168,6 @@ class Node implements Runnable {
         // send tearDown message to all neighbors
         Message message = new Message(identifier, "TERMINATE".getBytes());
         sendToAll(message);
-
-//    	// join all NodeThreads
-//    	for(Thread t: threads) {
-//    		try {
-//    			t.join();
-//    		}
-//    		catch(InterruptedException ex) {
-//    			
-//    		}
-//    	}
         // notify listener about tearDown
         if (listener != null) {
             listener.broken(identifier);
@@ -218,7 +211,7 @@ class Node implements Runnable {
             if (conns[i].socket == null) {
                 Socket s = connectTo(myInfo.neighbors[i]);
                 if (s != null) {
-                    conns[i].socket = s;
+                    conns[i].setSocket(s);
                     NconnsLeft--;
                 }
             }
