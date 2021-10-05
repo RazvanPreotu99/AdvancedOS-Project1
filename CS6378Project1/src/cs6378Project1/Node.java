@@ -15,20 +15,31 @@ import java.util.logging.Logger;
 //Object to represent a node in the distributed system
 final class Node {
 
+    // set DEBUG to true to show messages regarding status
     public static final boolean DEBUG = true;
 
     // node identifier
     private NodeID identifier;
+
+    //Listener of the Node
     private Listener listener;
 
+    //own info: id, machine, neighbors IDs
     private NodeStruct myInfo;
+
+    //info for all other nodes, to be used to find neighbors
     private NodeStruct allNodes[];
 
     private ServerSocket ss;
 
+    // array of triplets of NodeID, Socker, OutputStream
+    // one entry per neighbor
     private final IDSocket conns[];
+
+    // number of connections to neighors left to establish
     private int NconnsLeft = -1;
 
+    //maybe this does not need to be a field
     private Thread threads[];
 
     // constructor
@@ -61,6 +72,9 @@ final class Node {
         listen();
     }
 
+    /*
+    listen for connections, stops when there are as many connections as neighbors
+     */
     public void listen() {
         while (NconnsLeft > 0) {
             Socket s = null;
@@ -77,6 +91,12 @@ final class Node {
                 }
                 int i = findSocketIndex(clientid);
                 if (i != -1) {
+
+                    if (conns[i].socket != null) {
+                        System.out.println("Something is wrong, repeated node");
+                        System.exit(4);
+                    }
+
                     conns[i].setSocket(s);
                     NconnsLeft--;
                 }
@@ -89,7 +109,7 @@ final class Node {
         //create NodeThreads to check for messages incoming on channels
         threads = new Thread[myInfo.neighbors.length];
         try {
-            for (int i = 0; i < threads.length; ++i) {   
+            for (int i = 0; i < threads.length; ++i) {
                 threads[i] = new Thread(new NodeThread(this, conns[i].socket));
                 threads[i].start();
             }
@@ -103,7 +123,9 @@ final class Node {
         return myInfo.toString();
     }
 
-    // methods
+    /*
+     returns the NodeIDs of the neighbors with an open socket to the Node
+     */
     public NodeID[] getNeighbors() {
 
         NodeID ids[] = new NodeID[myInfo.neighbors.length];
@@ -227,6 +249,9 @@ final class Node {
 
     }
 
+    /*
+    try to connect to all neighbors that have not been connected to yet
+     */
     private void connectToNeighbors() {
         for (int i = 0; i < myInfo.neighbors.length; ++i) {
             if (conns[i].socket == null) {
@@ -239,6 +264,9 @@ final class Node {
         }
     }
 
+    /*
+    try to connect to a node given its NodeID
+     */
     private Socket connectTo(NodeID nid) {
         NodeStruct ns = findNodeStruct(nid);
 
@@ -259,7 +287,7 @@ final class Node {
     }
 
     /*
-        methods to check the configfile
+        read from the config file and set the necessary variables
      */
     private void createFromFile(String configFile) {
 
@@ -275,8 +303,9 @@ final class Node {
                     n = Integer.parseInt(trimComments(line));
                 }
             }
-
-            //System.out.println("There are " + nodes + " nodes");
+            if (DEBUG) {
+                System.out.println("There are " + n + " nodes");
+            }
             //getting ids and other info
             allNodes = new NodeStruct[n];
             int c = 0, ownInfoIndex = -1;
@@ -289,7 +318,6 @@ final class Node {
                         ownInfoIndex = c;
                         myInfo.machine = info[1];
                         myInfo.port = Integer.parseInt(info[2]);
-
                     }
                     allNodes[c].machine = info[1];
                     allNodes[c].port = Integer.parseInt(info[2]);
@@ -321,6 +349,9 @@ final class Node {
     }
 
     private boolean isValidLine(String line) {
+        if (line.length() == 0) {
+            return false;
+        }
         int n = line.charAt(0) - '0';
         return n >= 0 && n <= 9;
     }
@@ -333,8 +364,9 @@ final class Node {
         return line.substring(0, i);
     }
 
-    // TO DO change to private
-    // TO DO binary search or sth  faster
+    /*
+    find the NodeStruct given the NodeID
+     */
     private NodeStruct findNodeStruct(NodeID id) {
         for (NodeStruct ns : allNodes) {
             if (ns.id.getID() == id.getID()) {
@@ -344,6 +376,9 @@ final class Node {
         return null; // we should not be here
     }
 
+    /*
+    find the index of the Socket given the NodeID
+     */
     private int findSocketIndex(NodeID id) {
         for (int i = 0; i < conns.length; ++i) {
             if (conns[i].id.getID() == id.getID()) {
