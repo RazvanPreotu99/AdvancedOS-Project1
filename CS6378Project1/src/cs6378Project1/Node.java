@@ -1,4 +1,3 @@
-
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -11,6 +10,7 @@ import java.net.Socket;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.StringTokenizer;
 
 //Object to represent a node in the distributed system
 final class Node {
@@ -349,13 +349,32 @@ final class Node {
     }
 
     private boolean isValidLine(String line) {
+    	
         if (line.length() == 0) {
             return false;
         }
-        int n = line.charAt(0) - '0';
-        return n >= 0 && n <= 9;
+        
+        String firstToken = trimComments(line).split("\\s+")[0];
+        
+        if (isUnsignedInteger(firstToken))
+        	return true;
+        else
+        	return false;
     }
-
+    
+    private boolean isUnsignedInteger(String input) {
+    	try {
+			int num = Integer.parseInt(input);
+			if(num >= 0)
+				return true;
+			else
+				return false;
+		}
+		catch (Exception e) {
+			return false;
+		}
+	}
+    	
     private String trimComments(String line) {
         int i = line.indexOf('#');
         if (i == -1) {
