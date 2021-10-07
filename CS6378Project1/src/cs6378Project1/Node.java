@@ -46,6 +46,9 @@ final class Node {
 
     // number of connections to neighbors left to establish
     private int NconnsLeft = -1;
+    
+    // array of threads to read messages from input stream
+    private Thread threads[];
 
     /**
      * Constructor
