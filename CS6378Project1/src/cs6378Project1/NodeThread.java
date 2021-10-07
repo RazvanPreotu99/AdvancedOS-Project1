@@ -31,7 +31,7 @@ public class NodeThread implements Runnable {
      * @param node
      * @param socket
      */
-    public NodeThread(Node node, Socket socket){
+    public NodeThread(Node node, Socket socket) throws IOException{
         this.node = node;
 
         // create inputStream to read Message objects
