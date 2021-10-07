@@ -6,7 +6,15 @@ import java.util.logging.Logger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
+/**
+ *
+ * @author gvazq
+ */
 public class NodeThread implements Runnable {
+
+    /**
+     *
+     */
     public static final boolean DEBUG = Node.DEBUG;
     
     private Node node;
@@ -16,6 +24,13 @@ public class NodeThread implements Runnable {
     boolean stopThread = false;
 
     // constructor
+
+    /**
+     *
+     * @param node
+     * @param socket
+     * @throws IOException
+     */
     public NodeThread(Node node, Socket socket) throws IOException {
         this.node = node;
         //this.socket = socket;

@@ -1,3 +1,13 @@
+/*
+*
+* CS6378 - Fall 2021
+* Project 1
+* Razvan Preotu
+* Guillermo Vazquez
+*
+*/
+
+
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -10,7 +20,6 @@ import java.net.Socket;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.StringTokenizer;
 
 //Object to represent a node in the distributed system
 final class Node {
@@ -176,6 +185,7 @@ final class Node {
         }
     }
 
+    /*
     public void sendMessage(String string_message, int id) {
         int destID = findSocketIndex(new NodeID(id));
         if (destID == -1) {
@@ -186,6 +196,8 @@ final class Node {
         }
     }
 
+    */
+    
     public void sendToAll(Message message) {
         message.source = myInfo.id;
         for (IDSocket p : conns) {
@@ -213,6 +225,9 @@ final class Node {
         }
     }
 
+    /*
+    * close connection with a specific node, after that node sends a termination message
+    */
     public void closeConnection(NodeID source) {
 
         if (DEBUG) {
@@ -349,32 +364,25 @@ final class Node {
     }
 
     private boolean isValidLine(String line) {
-    	
+
         if (line.length() == 0) {
             return false;
         }
-        
+
         String firstToken = trimComments(line).split("\\s+")[0];
-        
-        if (isUnsignedInteger(firstToken))
-        	return true;
-        else
-        	return false;
+
+        return isUnsignedInteger(firstToken);
     }
-    
+
     private boolean isUnsignedInteger(String input) {
-    	try {
-			int num = Integer.parseInt(input);
-			if(num >= 0)
-				return true;
-			else
-				return false;
-		}
-		catch (Exception e) {
-			return false;
-		}
-	}
-    	
+        try {
+            int num = Integer.parseInt(input);
+            return num >= 0;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     private String trimComments(String line) {
         int i = line.indexOf('#');
         if (i == -1) {

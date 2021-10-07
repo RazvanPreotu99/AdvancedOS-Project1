@@ -1,3 +1,11 @@
+/*
+*
+* CS6378 - Fall 2021
+* Project 1
+* Razvan Preotu
+* Guillermo Vazquez
+*
+*/
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -5,29 +13,17 @@ import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- *
- * @author gvazq
- */
+ /*
+ Class to keep track of a NodeID, its socket with the local Node and its output stream
+*/
 public class IDSocket {
 
-    /**
-     *
-     */
     public NodeID id;
-
-    /**
-     *
-     */
     public Socket socket;
-
-    /**
-     *
-     */
     public ObjectOutputStream oos;
 
     /**
-     *
+     * Constructor
      * @param id
      * @param socket
      */
@@ -42,7 +38,7 @@ public class IDSocket {
     }
 
     /**
-     *
+     * Constructor
      * @param id
      */
     public IDSocket(NodeID id) {
@@ -51,7 +47,7 @@ public class IDSocket {
     }
 
     /**
-     *
+     * set the socket and the corresponding output stream
      * @param socket
      */
     public void setSocket(Socket socket) {
