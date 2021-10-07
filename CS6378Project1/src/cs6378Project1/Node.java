@@ -47,9 +47,6 @@ final class Node {
     // number of connections to neighbors left to establish
     private int NconnsLeft = -1;
     
-    // array of threads to read messages from input stream
-    private Thread threads[];
-
     /**
      * Constructor
      * @param identifier
@@ -120,7 +117,7 @@ final class Node {
             System.out.println("Node " + myInfo.id.getID() + " has connected to all neighbors. Stop listening for new conns");
         }
         //create NodeThreads to check for messages incoming on channels
-        threads = new Thread[myInfo.neighbors.length];
+        Thread threads[] = new Thread[myInfo.neighbors.length];
         try {
             for (int i = 0; i < threads.length; ++i) {
                 threads[i] = new Thread(new NodeThread(this, conns[i].socket));
