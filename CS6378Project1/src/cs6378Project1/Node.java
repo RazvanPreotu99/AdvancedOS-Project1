@@ -7,7 +7,6 @@
 *
 */
 
-
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -41,17 +40,19 @@ final class Node {
 
     private ServerSocket ss;
 
-    // array of triplets of NodeID, Socker, OutputStream
+    // array of triplets of NodeID, Socket, OutputStream
     // one entry per neighbor
     private final IDSocket conns[];
 
-    // number of connections to neighors left to establish
+    // number of connections to neighbors left to establish
     private int NconnsLeft = -1;
 
-    //maybe this does not need to be a field
-    private Thread threads[];
-
-    // constructor
+    /**
+     * Constructor
+     * @param identifier
+     * @param configFile
+     * @param listener
+     */
     public Node(NodeID identifier, String configFile, Listener listener) {
         this.identifier = identifier;
         this.listener = listener;
@@ -160,7 +161,10 @@ final class Node {
     public NodeStruct getNodeStruct() {
         return myInfo;
     }
-
+    
+    /*
+     * sends a message to a given neighbor
+     */
     public void send(Message message, NodeID destination) {
         message.source = myInfo.id;
         int i = findSocketIndex(destination);
@@ -173,31 +177,21 @@ final class Node {
                 }
             } else {
                 if (DEBUG) {
-                    System.out.println("Node " + Integer.toString(identifier.getID()) + ": connection to Node " + Integer.toString(destination.getID()) + "is already closed");
-                    System.out.println("Node " + Integer.toString(identifier.getID()) + ": not sending message");
+                    System.out.println("Node " + identifier + ": connection to Node " + Integer.toString(destination.getID()) + "is already closed");
+                    System.out.println("Node " + identifier + ": not sending message");
                 }
             }
         } else {
             if (DEBUG) {
-                System.out.println("Node " + Integer.toString(identifier.getID()) + ": connection to Node " + Integer.toString(destination.getID()) + " doesn't exist");
-                System.out.println("Node " + Integer.toString(identifier.getID()) + ": unable to send message");
+                System.out.println("Node " + identifier + ": connection to Node " + Integer.toString(destination.getID()) + " doesn't exist");
+                System.out.println("Node " + identifier + ": unable to send message");
             }
         }
     }
 
     /*
-    public void sendMessage(String string_message, int id) {
-        int destID = findSocketIndex(new NodeID(id));
-        if (destID == -1) {
-            System.out.println("Node " + Integer.toString(identifier.getID()) + ":Node with identifier " + Integer.toString(id) + "is not a neighbor");
-        } else {
-            Message message = new Message(this.identifier, string_message.getBytes());
-            send(message, new NodeID(id));
-        }
-    }
-
-    */
-    
+     * sends a given message to all neighbors
+     */
     public void sendToAll(Message message) {
         message.source = myInfo.id;
         for (IDSocket p : conns) {
@@ -211,6 +205,9 @@ final class Node {
         }
     }
 
+    /*
+     * closes connections to all neighbors
+     */
     public void tearDown() {
         // send tearDown message to all neighbors
         Message message = new Message(identifier, "TERMINATE".getBytes());
@@ -221,7 +218,7 @@ final class Node {
         }
 
         if (DEBUG) {
-            System.out.println("Node " + Integer.toString(identifier.getID()) + ": finished tearDown");
+            System.out.println("Node " + identifier + ": finished tearDown");
         }
     }
 
@@ -231,7 +228,7 @@ final class Node {
     public void closeConnection(NodeID source) {
 
         if (DEBUG) {
-            System.out.println("Node " + Integer.toString(identifier.getID()) + " attempting to close socket with Node " + Integer.toString(source.getID()));
+            System.out.println("Node " + identifier + " attempting to close socket with Node " + Integer.toString(source.getID()));
         }
         int i = 0;
         boolean isClosed = false;
@@ -242,7 +239,7 @@ final class Node {
                     conns[i].socket.close();
                     conns[i].socket = null;
                     if (DEBUG) {
-                        System.out.println("Node " + Integer.toString(identifier.getID()) + " succesfully closed socket with Node " + Integer.toString(source.getID()));
+                        System.out.println("Node " + identifier + " succesfully closed socket with Node " + Integer.toString(source.getID()));
                     }
                     isClosed = true;
                 } catch (IOException ex) {
@@ -255,11 +252,11 @@ final class Node {
 
         // check if socket was closed. shouldn't be here as source should be in conns array
         if (isClosed == false) {
-            System.out.println("Error: Node " + Integer.toString(source.getID()) + "is not a neighbor so there is no connection to close");
+            System.out.println("Error: Node " + identifier + " is not a neighbor so there is no connection to close");
         }
 
         if (DEBUG) {
-            System.out.println("Node " + identifier + "has neighbors: " + Arrays.toString(getNeighbors()));
+            System.out.println("Node " + identifier + " has neighbors: " + Arrays.toString(getNeighbors()));
         }
 
     }
@@ -302,7 +299,7 @@ final class Node {
     }
 
     /*
-        read from the config file and set the necessary variables
+     * read from the configuration file and set the necessary variables
      */
     private void createFromFile(String configFile) {
 
@@ -363,6 +360,10 @@ final class Node {
 
     }
 
+    /*
+     * checks if a line in the configuration file is valid
+     * a valid line should start with an unsigned integer
+     */
     private boolean isValidLine(String line) {
 
         if (line.length() == 0) {
@@ -374,6 +375,9 @@ final class Node {
         return isUnsignedInteger(firstToken);
     }
 
+    /*
+     * checks if the first token of the line is an unsigned integer
+     */
     private boolean isUnsignedInteger(String input) {
         try {
             int num = Integer.parseInt(input);
@@ -382,7 +386,10 @@ final class Node {
             return false;
         }
     }
-
+    
+    /*
+     * return a line with all characters after # removed
+     */
     private String trimComments(String line) {
         int i = line.indexOf('#');
         if (i == -1) {
@@ -412,6 +419,6 @@ final class Node {
                 return i;
             }
         }
-        return -1;
+        return -1;	// no index with the given NodeID
     }
 }

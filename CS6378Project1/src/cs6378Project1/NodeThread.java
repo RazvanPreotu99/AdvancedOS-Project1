@@ -1,3 +1,11 @@
+/*
+*
+* CS6378 - Fall 2021
+* Project 1
+* Razvan Preotu
+* Guillermo Vazquez
+*
+*/
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -6,38 +14,28 @@ import java.util.logging.Logger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
-/**
- *
- * @author gvazq
+/*
+ * Class to read messages from a specific channel and let Node know about it
  */
 public class NodeThread implements Runnable {
 
-    /**
-     *
-     */
     public static final boolean DEBUG = Node.DEBUG;
     
     private Node node;
-    //private Socket socket;
     private ObjectInputStream inputStream;
 
     boolean stopThread = false;
 
-    // constructor
-
     /**
-     *
+     * Constructor
      * @param node
      * @param socket
-     * @throws IOException
      */
-    public NodeThread(Node node, Socket socket) throws IOException {
+    public NodeThread(Node node, Socket socket){
         this.node = node;
-        //this.socket = socket;
 
         // create inputStream to read Message objects
         inputStream = new ObjectInputStream(socket.getInputStream());
-
     }
 
     @Override

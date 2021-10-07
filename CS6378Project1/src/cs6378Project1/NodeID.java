@@ -5,19 +5,25 @@
 * Razvan Preotu
 * Guillermo Vazquez
 *
- */
+*/
 
+/*
+ * Class that denotes the unique identifier associated with a node
+ * identifier is a non-negative number
+ */
 public class NodeID implements java.io.Serializable {
     
     //ID of the node
     private int identifier;
 
-    //Constructor
+    /**
+     * Constructor
+     * @param id
+     */
     public NodeID(int id) {
         identifier = id;
     }
 
-    //Getter function for ID
     public int getID() {
         return identifier;
     }

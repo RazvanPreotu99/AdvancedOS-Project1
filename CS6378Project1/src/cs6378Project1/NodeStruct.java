@@ -5,7 +5,7 @@
 * Razvan Preotu
 * Guillermo Vazquez
 *
- */
+*/
 
  /*
  Class to keep track of the node Info
@@ -23,7 +23,6 @@ public class NodeStruct {
 
     /**
      * Constructor
-     *
      * @param id
      * @param machine
      * @param port
